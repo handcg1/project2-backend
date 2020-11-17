@@ -30,6 +30,21 @@ app.get('/post/:username', (request, response) => {
  });
 });
 
+app.post('/post', (request, response) => {
+  const query = 'INSERT INTO post(username, picture, caption) VALUES (?, ?, ?)';
+        const params = [request.body.username, request.body.picture, request.body.caption];
+        connection.query(query, params, (error, result) => {
+                if (error) console.log(error);
+                response.send({
+                  ok: true,
+                  id: result.insertId,
+                });
+        });
+});
+
+
+
+
 const port = 3443;
 app.listen(port, () => {
     console.log(`We're live on port ${port}`);
