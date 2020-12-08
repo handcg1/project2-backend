@@ -2,14 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql');
 const fs = require('fs');
+const mkdir = require('mkdirp');
 
 const app = express();
 const imageDirectory = '/home/handcg/image-uploads';
-//const fileupload = require('express-fileupload');
+const fileupload = require('express-fileupload');
 
 app.use(cors());
 app.use(express.json());
-//app.use(file.upload());
+app.use(fileupload());
 
 let credentials = JSON.parse(fs.readFileSync('credentials.json', 'utf8'));
 let connection = mysql.createConnection(credentials);
@@ -20,54 +21,79 @@ function rowToObject(row) {
    username: row.username,
    picture: row.picture,
    caption: row.caption,
+   id: row.id,
   };
 }
 
+// load all posts when home page is loaded
+app.get('/load-posts', (request, response) => {
+  const query = 'SELECT username, picture, caption, id FROM post ORDER BY posted_at DESC';
+  connection.query(query, (error, rows) => {
+  response.send({
+        ok: true,
+        post: rows.map(rowToObject),
+   });
+});
+});
+
+// get all posts associated with a single user
+// can be used for profile page
 app.get('/post/:username', (request, response) => {
   const query = 'SELECT username, picture, caption, id FROM post WHERE username = ? ORDER BY posted_at DESC';
   const params = [request.params.username];
-  const names = fs.readdirSync(imageDirectory);
-  //response.sendFile(`${imageDirectory}/${picture}`);
-  //response.sendFile();
   connection.query(query, params, (error, rows) => {
    response.send({
 	ok: true,
 	post: rows.map(rowToObject),
-        //image: names,
    });
 });
-// response.send(names);
 });
 
 
-app.get('/images', (request, response) => {
-  const names = fs.readdirSync(imageDirectory);
-  response.send(names);
-});
-
-app.get('/image/:name', (request, response) => {
-  response.sendFile(`${imageDirectory}/${request.params.name}`);
+app.get('/image/:username/:filename', (request, response) => {
+  response.sendFile(`${imageDirectory}/${request.params.username}/${request.params.filename}`);
 });
 
 
+app.post('/upload-post', (request, response) => {
 
-/*
-app.get('/getimages', (request, response) => {
-   const names = fs.readdirSync(imageDirectory);
-   response.setHeader('Content-Type', 'text/html; charset=UTF-8');
-   response.send(names);
-});*/
+  const image = request.files.image;
+  const username = request.body.username;
 
-app.post('/post', (request, response) => {
-  const query = 'INSERT INTO post(username, picture, caption) VALUES (?, ?, ?)';
-        const params = [request.body.username, request.body.picture, request.body.caption];
-        connection.query(query, params, (error, result) => {
-                if (error) console.log(error);
-                response.send({
-                  ok: true,
-                  id: result.insertId,
-                });
-        });
+  const path = `${imageDirectory}/${username}/${image.name}`;
+
+  if (!fs.existsSync(`${imageDirectory}/${username}`)) {
+
+    fs.mkdir(`${imageDirectory}/${username}`, error => {
+    if (error) {
+      console.log(error);
+      response.sendStatus(500);
+    }
+    });
+
+  }
+
+
+  const picture = image.name;
+  const caption = request.body.caption;
+  const params = [username, picture, caption];
+
+
+  const query = 'INSERT INTO post(username, picture, caption) VALUES (?, ?, ?)';
+      connection.query(query, params, (error, result) => {
+               if (error) console.log(error);
+      });
+
+
+  image.mv(path, error => {
+    if (error) {
+      response.sendStatus(500);
+    } else {
+      response.header('Access-Control-Allow-Origin', 'https://project2.callanhand.me');
+      response.send(":)");
+    }
+  });
+
 });
 
 

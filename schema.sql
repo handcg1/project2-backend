@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS post;
+
+CREATE TABLE post (
+  id SERIAL PRIMARY KEY,
+  username TEXT,
+  picture TEXT,
+  caption TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  posted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+)
