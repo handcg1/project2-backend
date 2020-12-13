@@ -76,7 +76,7 @@ app.post('/upload-post', (request, response) => {
   const caption = request.body.caption;
   const params = [username, picture, caption];
 
-  const query = 'INSERT INTO post(username, picture, caption, display_post_at) VALUES (?, ?, ?,  date_add(now(), interval 2 minute))';
+  const query = 'INSERT INTO post(username, picture, caption, display_post_at) VALUES (?, ?, ?,  date_add(now(), interval 2 hour))';
       connection.query(query, params, (error, result) => {
                if (error) console.log(error);
       });
