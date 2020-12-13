@@ -27,7 +27,7 @@ function rowToObject(row) {
 
 // load all posts when home page is loaded
 app.get('/load-posts', (request, response) => {
-  const query = 'SELECT username, picture, caption, id FROM post ORDER BY posted_at DESC';
+  const query = 'SELECT username, picture, caption, id FROM post WHERE display_post_at <= now() ORDER BY posted_at DESC';
   connection.query(query, (error, rows) => {
   response.send({
         ok: true,
@@ -49,17 +49,17 @@ app.get('/post/:username', (request, response) => {
 });
 });
 
-
+// retrieve the image from the image-uploads directory
 app.get('/image/:username/:filename', (request, response) => {
   response.sendFile(`${imageDirectory}/${request.params.username}/${request.params.filename}`);
 });
 
 
+//post to the database
 app.post('/upload-post', (request, response) => {
 
   const image = request.files.image;
   const username = request.body.username;
-
   const path = `${imageDirectory}/${username}/${image.name}`;
 
   if (!fs.existsSync(`${imageDirectory}/${username}`)) {
@@ -72,14 +72,11 @@ app.post('/upload-post', (request, response) => {
     });
 
   }
-
-
   const picture = image.name;
   const caption = request.body.caption;
   const params = [username, picture, caption];
 
-
-  const query = 'INSERT INTO post(username, picture, caption) VALUES (?, ?, ?)';
+  const query = 'INSERT INTO post(username, picture, caption, display_post_at) VALUES (?, ?, ?,  date_add(now(), interval 2 minute))';
       connection.query(query, params, (error, result) => {
                if (error) console.log(error);
       });
@@ -89,7 +86,7 @@ app.post('/upload-post', (request, response) => {
     if (error) {
       response.sendStatus(500);
     } else {
-      response.header('Access-Control-Allow-Origin', 'https://project2.callanhand.me');
+      response.header('Access-Control-Allow-Origin', '*');
       response.send(":)");
     }
   });
@@ -101,3 +98,4 @@ const port = 3443;
 app.listen(port, () => {
     console.log(`We're live on port ${port}`);
 });
+
